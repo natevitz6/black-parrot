@@ -388,6 +388,27 @@ module bp_uce
      ,.data_o(writeback_data)
      );
 
+  logic prefetch_v_lo, prefetch_yumi_li;
+  logic [paddr_width_p-1:0] prefetch_addr_lo;
+
+  logic demand_miss_sent;
+  assign demand_miss_sent = miss_v_r & fsm_fwd_v_lo & fsm_fwd_last_lo;
+  bp_uce_prefetcher
+   #(.bp_params_p(bp_params_p)
+    ,.addr_width_p(paddr_width_p)
+    ,.block_offset_width_p(block_offset_width_lp)
+    )
+  prefetcher
+    (.clk_i(clk_i)
+     ,.reset_i(reset_i)
+     ,.miss_v_i(demand_miss_sent)
+     ,.miss_addr_i(cache_req_r.addr)
+     ,.prefetch_v_o(prefetch_v_lo)
+     ,.prefetch_addr_o(prefetch_addr_lo)
+     ,.prefetch_yumi_i(prefetch_yumi_li)
+    );
+
+
   bp_cache_req_wr_subop_e cache_wr_subop;
   bp_bedrock_wr_subop_e mem_wr_subop;
   always_comb
@@ -417,6 +438,7 @@ module bp_uce
   always_comb
     begin
       cache_req_yumi_o = '0;
+      prefetch_yumi_li = 1'b0;
 
       index_up    = '0;
       index_clear = '0;
@@ -592,20 +614,33 @@ module bp_uce
         e_ready:
           begin
             cache_req_yumi_o = cache_req_v_i & cache_req_ready_lo & (~cache_req_v_r | nonblocking_v_li);
+            if (cache_req_v_i) begin
+              state_n = cache_req_yumi_o
+                        ? (flush_v_li | clean_v_li)
+                          ? e_clean_read
+                          : inval_v_li
+                            ? e_inval
+                            : bclean_v_li
+                              ? e_bclean_evict
+                              : uc_evict_v_li
+                                ? e_uc_writeback_evict
+                                : nonblocking_v_li
+                                  ? e_ready
+                                  : e_send_critical
+                        : cache_req_v_i ? e_backoff : state_r;
+            end else if (prefetch_v_lo & fsm_fwd_ready_then_li) begin
+              fsm_fwd_header_lo.msg_type = e_bedrock_mem_pre;
+              fsm_fwd_header_lo.addr     = prefetch_addr_lo;
+              fsm_fwd_header_lo.size     = e_bedrock_msg_size_64;
+              fsm_fwd_header_lo.payload.lce_id = lce_id_i;
+              fsm_fwd_header_lo.payload.src_did = did_i;
+              fsm_fwd_header_lo.payload.prefetch = 1'b1;
 
-            state_n = cache_req_yumi_o
-                      ? (flush_v_li | clean_v_li)
-                        ? e_clean_read
-                        : inval_v_li
-                          ? e_inval
-                          : bclean_v_li
-                            ? e_bclean_evict
-                            : uc_evict_v_li
-                              ? e_uc_writeback_evict
-                              : nonblocking_v_li
-                                ? e_ready
-                                : e_send_critical
-                      : cache_req_v_i ? e_backoff : state_r;
+              fsm_fwd_v_lo = 1'b1;
+              prefetch_yumi_li = fsm_fwd_last_lo;
+
+              state_n = e_ready;
+      end
           end
 
         e_uc_writeback_evict:

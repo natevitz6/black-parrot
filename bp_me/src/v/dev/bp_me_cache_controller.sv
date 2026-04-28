@@ -85,6 +85,8 @@ module bp_me_cache_controller
   logic fsm_fwd_new_li, fsm_fwd_critical_li, fsm_fwd_last_li;
 
   bp_bedrock_mem_rev_header_s fsm_rev_header_lo;
+  //Insert for miss handling
+  bp_bedrock_mem_rev_header_s fsm_rev_header_metadata_lo;
   logic [l2_data_width_p-1:0] fsm_rev_data_lo;
   logic fsm_rev_v_lo, fsm_rev_ready_then_li;
   logic [paddr_width_p-1:0] fsm_rev_addr_lo;
@@ -94,8 +96,15 @@ module bp_me_cache_controller
   localparam cache_metadata_fifo_els_lp = 3*l2_banks_p;
   localparam cache_metadata_fifo_width_lp = $bits(bp_bedrock_mem_rev_header_s)+lg_l2_banks_lp;
 
+  // Checks if message is prefetch for no response expected
+  logic [l2_banks_p-1:0] op_v_lo, op_resp_expected_lo;
+  logic resp_expected_li;
+
+  assign resp_expected_li = is_ready && (fsm_fwd_header_li.msg_type != e_bedrock_mem_pre);
+
+
   // Hack because the bsg_cache does not have introspection
-  logic [l2_banks_p-1:0] op_v_lo, op_data_lo;
+  //logic [l2_banks_p-1:0] op_v_lo, op_data_lo;
   for (genvar i = 0; i < l2_banks_p; i++)
     begin : tag
       bsg_fifo_1r1w_small
@@ -104,11 +113,11 @@ module bp_me_cache_controller
         (.clk_i(clk_i)
          ,.reset_i(reset_i)
 
-         ,.data_i(is_ready)
+         ,.data_i(resp_expected_li)
          ,.v_i(cache_pkt_yumi_i[i])
          ,.ready_param_o()
 
-         ,.data_o(op_data_lo[i])
+         ,.data_o(op_resp_expected_lo[i])
          ,.v_o(op_v_lo[i])
          ,.yumi_i(cache_data_yumi_o[i])
          );
@@ -280,7 +289,19 @@ module bp_me_cache_controller
 
   logic [lg_l2_banks_lp-1:0] cache_rev_bank_lo;
   assign fsm_fwd_metadata_li = {fwd_pkt_bank_lo, fsm_fwd_header_li};
-  assign {cache_rev_bank_lo, fsm_rev_header_lo} = fsm_rev_metadata_lo;
+  // TRYING TO INSERT MISS BIT
+  logic l2_miss_lo;
+  assign l2_miss_lo = 1'b0;
+
+  assign {cache_rev_bank_lo, fsm_rev_header_metadata_lo} = fsm_rev_metadata_lo;
+
+  always_comb
+    begin
+      fsm_rev_header_lo = fsm_rev_header_metadata_lo;
+      fsm_rev_header_lo.payload.l2_miss = l2_miss_lo;
+    end
+
+  //assign {cache_rev_bank_lo, fsm_rev_header_lo} = fsm_rev_metadata_lo;
 
   // mem_rev data selection
   // For B/H/W/D ops, data returned from cache is at the LSB, but it may not for M ops
@@ -413,6 +434,9 @@ module bp_me_cache_controller
                     //,e_bedrock_msg_size_128
                     default: cache_pkt.opcode = SM;
                   endcase
+                // COMPLETE PREFETCH ASSIGNMENTS
+                e_bedrock_mem_pre:
+                  cache_pkt.opcode = LM;
                 default: cache_pkt.opcode = LB;
               endcase
 
@@ -449,12 +473,13 @@ module bp_me_cache_controller
       endcase
 
       for (int i = 0; i < l2_banks_p; i++)
-        if (op_v_lo[i] & op_data_lo[i] & (i == cache_rev_bank_lo))
+        // Change to match with response expected
+        if (op_v_lo[i] & op_resp_expected_lo[i] & (i == cache_rev_bank_lo))
           begin
             fsm_rev_v_lo = fsm_rev_ready_then_li & cache_data_v_i[i];
             cache_data_yumi_o[i] = fsm_rev_v_lo;
           end
-        else if (op_v_lo[i] & ~op_data_lo[i])
+        else if (op_v_lo[i] & ~op_resp_expected_lo[i])
           begin
             cache_data_yumi_o[i] = cache_data_v_i[i];
           end

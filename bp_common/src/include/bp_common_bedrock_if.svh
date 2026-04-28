@@ -121,6 +121,7 @@
       logic                                        prefetch;                           \
       logic                                        uncached;                           \
       logic                                        speculative;                        \
+      logic                                        l2_miss;                            \
     } bp_bedrock_mem_fwd_payload_s;                                                    \
                                                                                        \
     typedef bp_bedrock_mem_fwd_payload_s bp_bedrock_mem_rev_payload_s
@@ -146,7 +147,7 @@
     (cce_id_width_mp+lce_id_width_mp+did_width_mp)
 
   `define bp_bedrock_fwd_payload_width(lce_id_width_mp, cce_id_width_mp, did_width_mp, lce_assoc_mp) \
-    (3+lce_id_width_mp+`BSG_SAFE_CLOG2(lce_assoc_mp)+$bits(bp_coh_states_e)+did_width_mp)
+    (4+lce_id_width_mp+`BSG_SAFE_CLOG2(lce_assoc_mp)+$bits(bp_coh_states_e)+did_width_mp)
 
   `define bp_bedrock_rev_payload_width(lce_id_width_mp, cce_id_width_mp, did_width_mp, lce_assoc_mp) \
     `bp_bedrock_fwd_payload_width(lce_id_width_mp, cce_id_width_mp, did_width_mp, lce_assoc_mp)
