@@ -360,6 +360,13 @@ module bp_uce
 
   // Outstanding Requests Counter - counts all requests, cached and uncached
   //
+  logic fsm_fwd_prefetch_lo;
+
+  assign fsm_fwd_prefetch_lo =
+    fsm_fwd_header_lo.payload.prefetch
+    | (fsm_fwd_header_lo.msg_type == e_bedrock_mem_pre);
+
+
   logic [`BSG_WIDTH(coh_noc_max_credits_p)-1:0] credit_count_lo;
   bsg_flow_counter
    #(.els_p(coh_noc_max_credits_p), .ready_THEN_valid_p(1))
@@ -368,7 +375,7 @@ module bp_uce
      ,.reset_i(reset_i)
 
      // credit consumed when memory command sends
-     ,.v_i(fsm_fwd_v_lo & fsm_fwd_last_lo)
+     ,.v_i(fsm_fwd_v_lo & fsm_fwd_last_lo & ~fsm_fwd_prefetch_lo)
      ,.ready_param_i(fsm_fwd_ready_then_li)
 
      // credit returned when memory response fully consumed
@@ -392,16 +399,25 @@ module bp_uce
   logic [paddr_width_p-1:0] prefetch_addr_lo;
 
   logic demand_miss_sent;
-  assign demand_miss_sent = miss_v_r & fsm_fwd_v_lo & fsm_fwd_last_lo;
+  assign demand_miss_sent =
+    (state_r == e_send_critical)
+    & miss_v_r
+    & fsm_fwd_v_lo
+    & fsm_fwd_ready_then_li
+    & fsm_fwd_last_lo
+    & (fsm_fwd_header_lo.msg_type == e_bedrock_mem_rd);
+
   bp_uce_prefetcher
    #(.bp_params_p(bp_params_p)
     ,.addr_width_p(paddr_width_p)
     ,.block_offset_width_p(block_offset_width_lp)
+    ,.miss_count(3)
     )
   prefetcher
     (.clk_i(clk_i)
      ,.reset_i(reset_i)
-     ,.miss_v_i(demand_miss_sent)
+     ,.req_v_i(1'b1)
+     ,.miss_i(demand_miss_sent)
      ,.miss_addr_i(cache_req_r.addr)
      ,.prefetch_v_o(prefetch_v_lo)
      ,.prefetch_addr_o(prefetch_addr_lo)
@@ -629,18 +645,33 @@ module bp_uce
                                   : e_send_critical
                         : cache_req_v_i ? e_backoff : state_r;
             end else if (prefetch_v_lo & fsm_fwd_ready_then_li) begin
-              fsm_fwd_header_lo.msg_type = e_bedrock_mem_pre;
+              fsm_fwd_header_lo.msg_type = e_bedrock_mem_rd;
               fsm_fwd_header_lo.addr     = prefetch_addr_lo;
-              fsm_fwd_header_lo.size     = e_bedrock_msg_size_64;
+              fsm_fwd_header_lo.size     = e_bedrock_msg_size_8;
+
+              fsm_fwd_header_lo.payload.way_id = '0;
               fsm_fwd_header_lo.payload.lce_id = lce_id_i;
               fsm_fwd_header_lo.payload.src_did = did_i;
+              fsm_fwd_header_lo.payload.state = e_COH_I;
               fsm_fwd_header_lo.payload.prefetch = 1'b1;
+              fsm_fwd_header_lo.payload.uncached = 1'b0;
+              fsm_fwd_header_lo.payload.speculative = 1'b1;
+              fsm_fwd_header_lo.payload.l2_miss = 1'b0;
 
               fsm_fwd_v_lo = 1'b1;
-              prefetch_yumi_li = fsm_fwd_last_lo;
+              prefetch_yumi_li = fsm_fwd_v_lo & fsm_fwd_ready_then_li & fsm_fwd_last_lo;
+
+              `ifndef SYNTHESIS
+                if (fsm_fwd_v_lo & fsm_fwd_ready_then_li & fsm_fwd_last_lo)
+                  $display("[UCE-PREFETCH] time=%0t lce=%0d addr=%h size=%0d msg_type=%0d",
+                    $time, lce_id_i, prefetch_addr_lo, fsm_fwd_header_lo.size, fsm_fwd_header_lo.msg_type);
+              `endif
 
               state_n = e_ready;
-      end
+            end else 
+              begin
+                state_n = state_r;
+              end
           end
 
         e_uc_writeback_evict:

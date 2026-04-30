@@ -100,7 +100,7 @@ module bp_me_cache_controller
   logic [l2_banks_p-1:0] op_v_lo, op_resp_expected_lo;
   logic resp_expected_li;
 
-  assign resp_expected_li = is_ready && (fsm_fwd_header_li.msg_type != e_bedrock_mem_pre);
+  assign resp_expected_li = is_ready;// && (fsm_fwd_header_li.msg_type != e_bedrock_mem_pre);
 
 
   // Hack because the bsg_cache does not have introspection
@@ -436,15 +436,40 @@ module bp_me_cache_controller
                   endcase
                 // COMPLETE PREFETCH ASSIGNMENTS
                 e_bedrock_mem_pre:
+                  begin
                   cache_pkt.opcode = LM;
+                  `ifndef SYNTHESIS
+                  if (fsm_fwd_v_li) begin
+                    $display("[L2-PREFETCH-DECODE] time=%0t addr=%h", $time, fsm_fwd_header_li.addr);
+                    $display("[L2-PREFETCH-SEEN] time=%0t state=%0d is_uc=%0b cache_pkt_v=%0b cache_pkt_yumi=%0b fwd_yumi=%0b",
+         $time, state_r, is_uc_op, cache_pkt_v_lo, cache_pkt_yumi_li, fsm_fwd_yumi_lo);
+                  end
+                  `endif
+                  end
                 default: cache_pkt.opcode = LB;
               endcase
 
             cache_pkt.addr = fwd_pkt_daddr_lo;
+            `ifndef SYNTHESIS
+              if (fsm_fwd_v_li && (fsm_fwd_header_li.msg_type == e_bedrock_mem_pre))
+                $display("[L2-PREFETCH-RX] time=%0t addr=%h size=%0d msg_type=%0d resp_expected=%0b",
+                          $time, fsm_fwd_header_li.addr, fsm_fwd_header_li.size,
+                          fsm_fwd_header_li.msg_type, resp_expected_li);
+            `endif
             cache_pkt.data = fwd_pkt_data_lo;
             cache_pkt.mask = cache_pkt_mask_lo;
 
-            if (is_uc_op)
+            if (fsm_fwd_v_li && (fsm_fwd_header_li.msg_type == e_bedrock_mem_pre))
+              begin
+                `ifndef SYNTHESIS
+                $display("[L2-PREFETCH-BRANCH] time=%0t state=%0d fwd_v=%0b cache_yumi=%0b cache_pkt_v_set=%0b fwd_yumi_set=%0b",
+                        $time, state_r, fsm_fwd_v_li, cache_pkt_yumi_li,
+                        cache_pkt_v_lo, fsm_fwd_yumi_lo);
+                `endif
+                cache_pkt_v_lo = fsm_fwd_v_li;
+                fsm_fwd_yumi_lo = cache_pkt_yumi_li;
+              end
+            else if (is_uc_op)
               begin
                 cache_pkt_v_lo = fsm_fwd_v_li;
                 fsm_fwd_yumi_lo = cache_pkt_yumi_li & ~fsm_fwd_last_li;
@@ -481,6 +506,10 @@ module bp_me_cache_controller
           end
         else if (op_v_lo[i] & ~op_resp_expected_lo[i])
           begin
+            `ifndef SYNTHESIS
+        $display("[L2-PREFETCH-SWALLOW] time=%0t bank=%0d cache_data_v=%0b",
+                 $time, i, cache_data_v_i[i]);
+        `endif
             cache_data_yumi_o[i] = cache_data_v_i[i];
           end
     end
@@ -502,6 +531,17 @@ module bp_me_cache_controller
           else $error("LR/SC not supported in bsg_cache");
     end
   // synopsys translate_on
+  `ifndef SYNTHESIS
+always_ff @(posedge clk_i) begin
+  if (!reset_i && fsm_fwd_v_li && (fsm_fwd_header_li.msg_type == e_bedrock_mem_pre)) begin
+    $display("[L2-PREFETCH-CLK] time=%0t state=%0d addr=%h fwd_v=%0b fwd_yumi=%0b cache_pkt_v=%0b cache_yumi=%0b resp_expected=%0b",
+             $time, state_r, fsm_fwd_header_li.addr,
+             fsm_fwd_v_li, fsm_fwd_yumi_lo,
+             cache_pkt_v_lo, cache_pkt_yumi_li,
+             resp_expected_li);
+  end
+end
+`endif
 
   // requirement from BedRock Stream interface
   if (!(`BSG_IS_POW2(l2_data_width_p) || l2_data_width_p < 64 || l2_data_width_p > 512))
