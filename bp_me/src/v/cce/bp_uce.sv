@@ -362,9 +362,7 @@ module bp_uce
   //
   logic fsm_fwd_prefetch_lo;
 
-  assign fsm_fwd_prefetch_lo =
-    fsm_fwd_header_lo.payload.prefetch
-    | (fsm_fwd_header_lo.msg_type == e_bedrock_mem_pre);
+  assign fsm_fwd_prefetch_lo = fsm_fwd_header_lo.msg_type == e_bedrock_mem_pre;
 
 
   logic [`BSG_WIDTH(coh_noc_max_credits_p)-1:0] credit_count_lo;
@@ -398,7 +396,7 @@ module bp_uce
   logic prefetch_v_lo, prefetch_yumi_li;
   logic [paddr_width_p-1:0] prefetch_addr_lo;
 
-  logic demand_miss_sent;
+  /*logic demand_miss_sent;
   assign demand_miss_sent =
     (state_r == e_send_critical)
     & miss_v_r
@@ -406,6 +404,9 @@ module bp_uce
     & fsm_fwd_ready_then_li
     & fsm_fwd_last_lo
     & (fsm_fwd_header_lo.msg_type == e_bedrock_mem_rd);
+  */
+  logic demand_miss_li;
+  assign demand_miss_li = load_resp_v_li & fsm_rev_new_li & fsm_rev_header_li.payload.l2_miss;
 
   bp_uce_prefetcher
    #(.bp_params_p(bp_params_p)
@@ -417,8 +418,8 @@ module bp_uce
     (.clk_i(clk_i)
      ,.reset_i(reset_i)
      ,.req_v_i(1'b1)
-     ,.miss_i(demand_miss_sent)
-     ,.miss_addr_i(cache_req_r.addr)
+     ,.miss_i(demand_miss_li)
+     ,.miss_addr_i(fsm_rev_addr_li)
      ,.prefetch_v_o(prefetch_v_lo)
      ,.prefetch_addr_o(prefetch_addr_lo)
      ,.prefetch_yumi_i(prefetch_yumi_li)
@@ -645,9 +646,9 @@ module bp_uce
                                   : e_send_critical
                         : cache_req_v_i ? e_backoff : state_r;
             end else if (prefetch_v_lo & fsm_fwd_ready_then_li) begin
-              fsm_fwd_header_lo.msg_type = e_bedrock_mem_rd;
+              fsm_fwd_header_lo.msg_type = e_bedrock_mem_pre;
               fsm_fwd_header_lo.addr     = prefetch_addr_lo;
-              fsm_fwd_header_lo.size     = e_bedrock_msg_size_8;
+              fsm_fwd_header_lo.size     = bp_bedrock_msg_size_e'(cache_req_r.size);
 
               fsm_fwd_header_lo.payload.way_id = '0;
               fsm_fwd_header_lo.payload.lce_id = lce_id_i;
@@ -660,12 +661,6 @@ module bp_uce
 
               fsm_fwd_v_lo = 1'b1;
               prefetch_yumi_li = fsm_fwd_v_lo & fsm_fwd_ready_then_li & fsm_fwd_last_lo;
-
-              `ifndef SYNTHESIS
-                if (fsm_fwd_v_lo & fsm_fwd_ready_then_li & fsm_fwd_last_lo)
-                  $display("[UCE-PREFETCH] time=%0t lce=%0d addr=%h size=%0d msg_type=%0d",
-                    $time, lce_id_i, prefetch_addr_lo, fsm_fwd_header_lo.size, fsm_fwd_header_lo.msg_type);
-              `endif
 
               state_n = e_ready;
             end else 
@@ -890,7 +885,7 @@ module bp_uce
       state_r <= e_reset;
     else
       state_r <= state_n;
-
+  
   // synopsys translate_off
   always_ff @(negedge clk_i)
     assert(reset_i !== '0 || (writeback_p == 1) || !(state_r inside {e_uc_writeback_evict, e_writeback_evict, e_uc_writeback_write_req, e_writeback_read_wait, e_writeback_write_req}))

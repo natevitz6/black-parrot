@@ -59,6 +59,7 @@ module bp_me_cache_slice
   logic [l2_banks_p-1:0] cache_pkt_v_li, cache_pkt_yumi_lo;
   logic [l2_banks_p-1:0][l2_data_width_p-1:0] cache_data_lo;
   logic [l2_banks_p-1:0] cache_data_v_lo, cache_data_yumi_li;
+  logic [l2_banks_p-1:0] cache_miss_lo;
 
   // TODO: Buffering can be reduced by only saving headers per stream
   bp_bedrock_mem_fwd_header_s mem_fwd_header_li;
@@ -105,6 +106,7 @@ module bp_me_cache_slice
      ,.cache_data_i(cache_data_lo)
      ,.cache_data_v_i(cache_data_v_lo)
      ,.cache_data_yumi_o(cache_data_yumi_li)
+     ,.cache_miss_i(cache_miss_lo)
      );
 
   `declare_bsg_cache_dma_pkt_s(daddr_width_p, l2_block_size_in_words_p);
@@ -166,6 +168,18 @@ module bp_me_cache_slice
       assign dma_pkt_cast_o[i].write_not_read = dma_pkt_lo[i].write_not_read;
       assign dma_pkt_cast_o[i].mask = dma_pkt_lo[i].mask;
       assign dma_pkt_o[i] = dma_pkt_cast_o[i];
+
+      bp_me_cache_miss_tracker 
+        miss_tracker 
+         (.clk_i(clk_i)
+          ,.reset_i(reset_i)
+          ,.cache_pkt_yumi_i(cache_pkt_yumi_lo)
+          ,.dma_pkt_v_i(dma_pkt_v_o[i])
+          ,.cache_data_v_i(cache_data_v_lo)
+          ,.cache_data_yumi_i(cache_data_yumi_li[i])
+
+          ,.miss_o(cache_miss_lo[i]));
+
     end
 
 endmodule
