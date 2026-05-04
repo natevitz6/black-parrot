@@ -412,7 +412,8 @@ module bp_uce
    #(.bp_params_p(bp_params_p)
     ,.addr_width_p(paddr_width_p)
     ,.block_offset_width_p(block_offset_width_lp)
-    ,.miss_count(3)
+    ,.miss_count(2)
+    ,.lookahead_depth(4)
     )
   prefetcher
     (.clk_i(clk_i)
