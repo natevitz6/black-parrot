@@ -173,9 +173,9 @@ module bp_me_cache_slice
         miss_tracker 
          (.clk_i(clk_i)
           ,.reset_i(reset_i)
-          ,.cache_pkt_yumi_i(cache_pkt_yumi_lo)
+          ,.cache_pkt_yumi_i(cache_pkt_yumi_lo[i])
           ,.dma_pkt_v_i(dma_pkt_v_o[i])
-          ,.cache_data_v_i(cache_data_v_lo)
+          ,.cache_data_v_i(cache_data_v_lo[i])
           ,.cache_data_yumi_i(cache_data_yumi_li[i])
 
           ,.miss_o(cache_miss_lo[i]));
