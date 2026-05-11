@@ -50,6 +50,24 @@ module bp_uce_prefetcher
   logic miss_v_r, miss_v_n;
   logic [addr_width_p-1:0] miss_addr_r, miss_addr_n;
   logic [addr_width_p-1:0] miss_next_addr_r, miss_next_addr_n;
+  localparam logic [addr_width_p-1:0] line_size_lp =
+    (addr_width_p'(1) << block_offset_width_p);
+
+  logic prefetch_v_r, prefetch_v_n;
+  logic stream_active_r, stream_active_n;
+
+  logic [$clog2(lookahead_depth+1)-1:0] remaining_prefetches_r;
+  logic [$clog2(lookahead_depth+1)-1:0] remaining_prefetches_n;
+
+  logic [1:0] count_r, count_n;
+
+  logic [addr_width_p-1:0] prefetch_addr_r, prefetch_addr_n;
+  logic [addr_width_p-1:0] expected_miss_addr_r, expected_miss_addr_n;
+
+  // Registered miss observation stage
+  logic miss_v_r, miss_v_n;
+  logic [addr_width_p-1:0] miss_addr_r, miss_addr_n;
+  logic [addr_width_p-1:0] miss_next_addr_r, miss_next_addr_n;
 
   assign prefetch_addr_o = prefetch_addr_r;
   assign prefetch_v_o    = prefetch_v_r;
@@ -137,7 +155,7 @@ module bp_uce_prefetcher
       miss_v_r               <= miss_v_n;
       miss_addr_r            <= miss_addr_n;
       miss_next_addr_r       <= miss_next_addr_n;
-/*
+
 `ifndef SYNTHESIS
       if (miss_v_r) begin
         $display("[PREF-TRAIN] time=%0t miss_addr=%h expected=%h count=%0d active=%0b p_v=%0b p_addr=%h rem=%0d",
@@ -160,7 +178,6 @@ module bp_uce_prefetcher
                  $time, prefetch_addr_r, remaining_prefetches_r, stream_active_r);
       end
 `endif
-*/
     end
   end
 
