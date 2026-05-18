@@ -45,7 +45,7 @@ module bp_me_cache_miss_tracker
     else if (dma_pkt_v_i)
       miss_r <= 1'b1;          // miss observed for in-flight request
 
-  assign miss_o = miss_r | dma_pkt_v_i;  // combinationally include
+  assign miss_o = (miss_r | dma_pkt_v_i) && !reset_i;  // combinationally include
                                           // same-cycle DMA assertion
 
 endmodule

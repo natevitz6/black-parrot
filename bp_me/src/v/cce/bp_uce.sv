@@ -407,7 +407,29 @@ module bp_uce
   */
   logic demand_miss_li;
   assign demand_miss_li = load_resp_v_li & fsm_rev_new_li & fsm_rev_header_li.payload.l2_miss;
+  assign demand_hit_li = load_resp_v_li & fsm_rev_new_li & ~fsm_rev_header_li.payload.l2_miss;
 
+
+  bp_uce_multi_pre
+   #(.bp_params_p(bp_params_p)
+    ,.streams_p(2)
+    ,.addr_width_p(paddr_width_p)
+    ,.block_offset_width_p(block_offset_width_lp)
+    ,.miss_count(2)
+    ,.lookahead_depth(4)
+    )
+  prefetcher
+    (.clk_i(clk_i)
+     ,.reset_i(reset_i)
+     ,.req_v_i(1'b1)
+     ,.miss_i(demand_miss_li)
+     ,.hit_i(demand_hit_li)
+     ,.req_addr_i(fsm_rev_addr_li)
+     ,.prefetch_v_o(prefetch_v_lo)
+     ,.prefetch_addr_o(prefetch_addr_lo)
+     ,.prefetch_yumi_i(prefetch_yumi_li)
+    );
+  /*
   bp_uce_prefetcher
    #(.bp_params_p(bp_params_p)
     ,.addr_width_p(paddr_width_p)
@@ -425,7 +447,7 @@ module bp_uce
      ,.prefetch_addr_o(prefetch_addr_lo)
      ,.prefetch_yumi_i(prefetch_yumi_li)
     );
-
+  */
 
   bp_cache_req_wr_subop_e cache_wr_subop;
   bp_bedrock_wr_subop_e mem_wr_subop;
