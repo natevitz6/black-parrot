@@ -416,6 +416,27 @@ module bp_uce
     ,.addr_width_p(paddr_width_p)
     ,.block_offset_width_p(block_offset_width_lp)
     ,.miss_count(2)
+    ,.lookahead_depth(8)
+    )
+  prefetcher
+    (.clk_i(clk_i)
+     ,.reset_i(reset_i)
+     ,.req_v_i(1'b1)
+     ,.miss_i(demand_miss_li)
+     ,.hit_i(demand_hit_li)
+     ,.req_addr_i(fsm_rev_addr_li)
+     ,.prefetch_v_o(prefetch_v_lo)
+     ,.prefetch_addr_o(prefetch_addr_lo)
+     ,.prefetch_yumi_i(prefetch_yumi_li)
+    );
+
+  /*
+  bp_uce_hit_pre
+   #(.bp_params_p(bp_params_p)
+    //,.streams_p(1)
+    ,.addr_width_p(paddr_width_p)
+    ,.block_offset_width_p(block_offset_width_lp)
+    ,.miss_count(2)
     ,.lookahead_depth(4)
     )
   prefetcher
@@ -908,7 +929,33 @@ module bp_uce
       state_r <= e_reset;
     else
       state_r <= state_n;
-  
+    `ifndef SYNTHESIS
+  always_ff @(posedge clk_i) begin
+    if (!reset_i) begin
+      if (is_send_critical
+          && miss_v_r
+          && fsm_fwd_v_lo
+          && fsm_fwd_ready_then_li
+          && fsm_fwd_last_lo
+          && (fsm_fwd_header_lo.msg_type == e_bedrock_mem_rd)) begin
+        $display("[UCE-DMISS-SEND] t=%0t addr=%h", $time, fsm_fwd_addr_lo);
+      end
+
+      if (is_ready
+          && fsm_fwd_v_lo
+          && fsm_fwd_ready_then_li
+          && fsm_fwd_last_lo
+          && (fsm_fwd_header_lo.msg_type == e_bedrock_mem_pre)) begin
+        $display("[UCE-PREF-SEND]  t=%0t addr=%h", $time, fsm_fwd_addr_lo);
+      end
+
+      if (load_resp_v_li && load_resp_yumi_lo) begin
+        $display("[UCE-LOAD-RSP]   t=%0t addr=%h l2_miss=%0b",
+                 $time, fsm_rev_addr_li, fsm_rev_header_li.payload.l2_miss);
+      end
+    end
+  end
+`endif
   // synopsys translate_off
   always_ff @(negedge clk_i)
     assert(reset_i !== '0 || (writeback_p == 1) || !(state_r inside {e_uc_writeback_evict, e_writeback_evict, e_uc_writeback_write_req, e_writeback_read_wait, e_writeback_write_req}))
