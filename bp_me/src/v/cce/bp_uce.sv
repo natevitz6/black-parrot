@@ -415,8 +415,9 @@ module bp_uce
     ,.streams_p(2)
     ,.addr_width_p(paddr_width_p)
     ,.block_offset_width_p(block_offset_width_lp)
-    ,.miss_count(2)
-    ,.lookahead_depth(8)
+    ,.train_cnt_p(2)
+    ,.lookahead_depth_p(4)
+    ,.idle_threshold_p(3)
     )
   prefetcher
     (.clk_i(clk_i)
@@ -429,46 +430,6 @@ module bp_uce
      ,.prefetch_addr_o(prefetch_addr_lo)
      ,.prefetch_yumi_i(prefetch_yumi_li)
     );
-
-  /*
-  bp_uce_hit_pre
-   #(.bp_params_p(bp_params_p)
-    //,.streams_p(1)
-    ,.addr_width_p(paddr_width_p)
-    ,.block_offset_width_p(block_offset_width_lp)
-    ,.miss_count(2)
-    ,.lookahead_depth(4)
-    )
-  prefetcher
-    (.clk_i(clk_i)
-     ,.reset_i(reset_i)
-     ,.req_v_i(1'b1)
-     ,.miss_i(demand_miss_li)
-     ,.hit_i(demand_hit_li)
-     ,.req_addr_i(fsm_rev_addr_li)
-     ,.prefetch_v_o(prefetch_v_lo)
-     ,.prefetch_addr_o(prefetch_addr_lo)
-     ,.prefetch_yumi_i(prefetch_yumi_li)
-    );
-  /*
-  bp_uce_prefetcher
-   #(.bp_params_p(bp_params_p)
-    ,.addr_width_p(paddr_width_p)
-    ,.block_offset_width_p(block_offset_width_lp)
-    ,.miss_count(2)
-    ,.lookahead_depth(4)
-    )
-  prefetcher
-    (.clk_i(clk_i)
-     ,.reset_i(reset_i)
-     ,.req_v_i(1'b1)
-     ,.miss_i(demand_miss_li)
-     ,.miss_addr_i(fsm_rev_addr_li)
-     ,.prefetch_v_o(prefetch_v_lo)
-     ,.prefetch_addr_o(prefetch_addr_lo)
-     ,.prefetch_yumi_i(prefetch_yumi_li)
-    );
-  */
 
   bp_cache_req_wr_subop_e cache_wr_subop;
   bp_bedrock_wr_subop_e mem_wr_subop;
@@ -929,6 +890,7 @@ module bp_uce
       state_r <= e_reset;
     else
       state_r <= state_n;
+      /*
     `ifndef SYNTHESIS
   always_ff @(posedge clk_i) begin
     if (!reset_i) begin
@@ -956,6 +918,7 @@ module bp_uce
     end
   end
 `endif
+*/
   // synopsys translate_off
   always_ff @(negedge clk_i)
     assert(reset_i !== '0 || (writeback_p == 1) || !(state_r inside {e_uc_writeback_evict, e_writeback_evict, e_uc_writeback_write_req, e_writeback_read_wait, e_writeback_write_req}))
