@@ -298,19 +298,14 @@ module bp_me_cache_controller
   assign fsm_fwd_metadata_li = {fwd_pkt_bank_lo, fsm_fwd_header_li};
   assign {cache_rev_bank_lo, fsm_rev_header_metadata_lo} = fsm_rev_metadata_lo;
 
-  // TRYING TO INSERT MISS BIT
   logic l2_miss_lo;
-  
   
   assign l2_miss_lo = cache_miss_i[cache_rev_bank_lo];
   always_comb
     begin
-
       fsm_rev_header_lo = fsm_rev_header_metadata_lo;
       fsm_rev_header_lo.payload.l2_miss = l2_miss_lo;
     end
-
-  //assign {cache_rev_bank_lo, fsm_rev_header_lo} = fsm_rev_metadata_lo;
 
   // mem_rev data selection
   // For B/H/W/D ops, data returned from cache is at the LSB, but it may not for M ops

@@ -131,6 +131,42 @@
                         ,bp_unicore_cfg_p
                         );
 
+  localparam bp_proc_param_s bp_unicore_l2sets16_override_p =
+  '{l2_sets : 16
+    ,default : "inv"
+    };
+  `bp_aviary_derive_cfg(bp_unicore_l2sets16_cfg_p
+                        ,bp_unicore_l2sets16_override_p
+                        ,bp_unicore_cfg_p
+                        );
+
+  localparam bp_proc_param_s bp_unicore_l2sets8_override_p =
+    '{l2_sets : 8
+      ,default : "inv"
+      };
+  `bp_aviary_derive_cfg(bp_unicore_l2sets8_cfg_p
+                        ,bp_unicore_l2sets8_override_p
+                        ,bp_unicore_cfg_p
+                        );
+
+  localparam bp_proc_param_s bp_unicore_l2slices1_override_p =
+    '{l2_slices : 1
+      ,default : "inv"
+      };
+  `bp_aviary_derive_cfg(bp_unicore_l2slices1_cfg_p
+                        ,bp_unicore_l2slices1_override_p
+                        ,bp_unicore_cfg_p
+                        );
+
+  localparam bp_proc_param_s bp_unicore_l2banks2_override_p =
+    '{l2_banks : 2
+      ,default : "inv"
+      };
+  `bp_aviary_derive_cfg(bp_unicore_l2banks2_cfg_p
+                        ,bp_unicore_l2banks2_override_p
+                        ,bp_unicore_cfg_p
+                        );
+
   localparam bp_proc_param_s bp_multicore_1_override_p =
     '{cce_type              : e_cce_fsm
       ,ic_y_dim             : 1
@@ -540,6 +576,10 @@
     ,bp_unicore_miniparrot_cfg_p
     ,bp_unicore_tinyparrot_cfg_p
     ,bp_unicore_cfg_p
+    ,bp_unicore_l2sets16_cfg_p
+    ,bp_unicore_l2sets8_cfg_p
+    ,bp_unicore_l2slices1_cfg_p
+    ,bp_unicore_l2banks2_cfg_p
 
     // A custom BP configuration generated from Makefile
     ,bp_custom_cfg_p
@@ -551,8 +591,13 @@
   // This enum MUST be kept up to date with the parameter array above
   typedef enum bit [lg_max_cfgs-1:0]
   {
+    // More unicore configurations
+    e_bp_unicore_l2sets16_cfg                       = 36
+    ,e_bp_unicore_l2sets8_cfg                       = 35
+    ,e_bp_unicore_l2slices1_cfg                     = 34
+    ,e_bp_unicore_l2banks2_cfg                      = 33
     // L2 extension configurations
-    e_bp_multicore_4_l2e_cfg                        = 32
+    ,e_bp_multicore_4_l2e_cfg                       = 32
     ,e_bp_multicore_2_l2e_cfg                       = 31
     ,e_bp_multicore_1_l2e_cfg                       = 30
 

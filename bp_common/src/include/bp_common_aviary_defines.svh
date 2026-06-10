@@ -206,6 +206,12 @@
     , localparam issue_ptr_p    = `BSG_WIDTH(issue_cinstr_p)                                       \
     , localparam issue_bytes_p  = issue_width_p >> 3                                               \
     , localparam issue_offset_p = `BSG_SAFE_CLOG2(issue_bytes_p)                                   \
+                                                                                                   \
+    , localparam prefetch_streams_p         = proc_param_lp.prefetch_streams                       \
+    , localparam prefetch_train_cnt_p       = proc_param_lp.prefetch_train_cnt                     \
+    , localparam prefetch_lookahead_depth_p = proc_param_lp.prefetch_lookahead_depth               \
+    , localparam prefetch_idle_threshold_p  = proc_param_lp.prefetch_idle_threshold                \
+    , localparam prefetch_en_p              = proc_param_lp.prefetch_en                            \
 
     `define bp_aviary_parameter_override(parameter_mp, override_cfg_mp, default_cfg_mp) \
       parameter_mp: (override_cfg_mp.``parameter_mp`` == "inv") \
@@ -318,6 +324,12 @@
           ,`bp_aviary_parameter_override(dma_noc_flit_width, override_cfg_mp, default_cfg_mp)      \
           ,`bp_aviary_parameter_override(dma_noc_cid_width, override_cfg_mp, default_cfg_mp)       \
           ,`bp_aviary_parameter_override(dma_noc_len_width, override_cfg_mp, default_cfg_mp)       \
+                                                                                                   \
+          ,`bp_aviary_parameter_override(prefetch_streams, override_cfg_mp, default_cfg_mp)        \
+          ,`bp_aviary_parameter_override(prefetch_train_cnt, override_cfg_mp, default_cfg_mp)      \
+          ,`bp_aviary_parameter_override(prefetch_lookahead_depth, override_cfg_mp, default_cfg_mp)\
+          ,`bp_aviary_parameter_override(prefetch_idle_threshold, override_cfg_mp, default_cfg_mp) \
+          ,`bp_aviary_parameter_override(prefetch_en, override_cfg_mp, default_cfg_mp)             \
           }
 
 `endif

@@ -396,15 +396,6 @@ module bp_uce
   logic prefetch_v_lo, prefetch_yumi_li;
   logic [paddr_width_p-1:0] prefetch_addr_lo;
 
-  /*logic demand_miss_sent;
-  assign demand_miss_sent =
-    (state_r == e_send_critical)
-    & miss_v_r
-    & fsm_fwd_v_lo
-    & fsm_fwd_ready_then_li
-    & fsm_fwd_last_lo
-    & (fsm_fwd_header_lo.msg_type == e_bedrock_mem_rd);
-  */
   logic demand_miss_li;
   assign demand_miss_li = load_resp_v_li & fsm_rev_new_li & fsm_rev_header_li.payload.l2_miss;
   assign demand_hit_li = load_resp_v_li & fsm_rev_new_li & ~fsm_rev_header_li.payload.l2_miss;
@@ -412,17 +403,17 @@ module bp_uce
 
   bp_uce_multi_pre
    #(.bp_params_p(bp_params_p)
-    ,.streams_p(2)
+    ,.streams_p(prefetch_streams_p)
     ,.addr_width_p(paddr_width_p)
-    ,.block_offset_width_p(block_offset_width_lp)
-    ,.train_cnt_p(2)
-    ,.lookahead_depth_p(4)
-    ,.idle_threshold_p(3)
+    ,.l2_block_width_p(l2_block_width_p)
+    ,.train_cnt_p(prefetch_train_cnt_p)
+    ,.lookahead_depth_p(prefetch_lookahead_depth_p)
+    ,.idle_threshold_p(prefetch_idle_threshold_p)
     )
   prefetcher
     (.clk_i(clk_i)
      ,.reset_i(reset_i)
-     ,.req_v_i(1'b1)
+     ,.req_v_i(prefetch_en_p)
      ,.miss_i(demand_miss_li)
      ,.hit_i(demand_hit_li)
      ,.req_addr_i(fsm_rev_addr_li)

@@ -71,7 +71,7 @@ module bp_uce_hit_pre
 
     if (req_v_i & miss_i) begin
       miss_addr_n      = req_addr_i;
-    end else if (req_v_i & !miss_i) begin
+    end else if (req_v_i & hit_i) begin
       hit_addr_n = req_addr_i;
     end
 

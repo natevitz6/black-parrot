@@ -249,6 +249,7 @@ $BP_DIR/bp_me/src/v/lce/bp_lce_cmd.sv
 # Cache
 $BP_DIR/bp_me/src/v/dev/bp_me_bedrock_register.sv
 $BP_DIR/bp_me/src/v/dev/bp_me_cache_controller.sv
+$BP_DIR/bp_me/src/v/dev/bp_me_cache_miss_tracker.sv
 $BP_DIR/bp_me/src/v/dev/bp_me_dram_hash_decode.sv
 $BP_DIR/bp_me/src/v/dev/bp_me_dram_hash_encode.sv
 $BP_DIR/bp_me/src/v/dev/bp_me_cache_slice.sv
@@ -282,6 +283,9 @@ $BP_DIR/bp_me/src/v/cce/bp_cce_wrapper.sv
 $BP_DIR/bp_me/src/v/cce/bp_bedrock_size_to_len.sv
 # Network
 $BP_DIR/bp_me/src/v/cce/bp_uce.sv
+$BP_DIR/bp_me/src/v/cce/bp_uce_prefetcher.sv
+$BP_DIR/bp_me/src/v/cce/bp_uce_hit_pre.sv
+$BP_DIR/bp_me/src/v/cce/bp_uce_multi_pre.sv
 $BP_DIR/bp_me/src/v/network/bp_me_addr_to_cce_id.sv
 $BP_DIR/bp_me/src/v/network/bp_me_cce_id_to_cord.sv
 $BP_DIR/bp_me/src/v/network/bp_me_cord_to_id.sv

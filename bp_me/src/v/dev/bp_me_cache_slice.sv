@@ -179,7 +179,6 @@ module bp_me_cache_slice
           ,.cache_data_yumi_i(cache_data_yumi_li[i])
 
           ,.miss_o(cache_miss_lo[i]));
-
     end
 
 endmodule

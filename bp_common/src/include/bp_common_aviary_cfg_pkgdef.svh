@@ -275,6 +275,13 @@
     // Maximum credits supported by the network. Correlated to the bandwidth delay product
     int dma_noc_max_credits;
 
+    // UCE-side L2 prefetcher policy knobs
+    int prefetch_streams;
+    int prefetch_train_cnt;
+    int prefetch_lookahead_depth;
+    int prefetch_idle_threshold;
+    int prefetch_en;
+
   }  bp_proc_param_s;
 
   localparam bp_proc_param_s bp_default_cfg_p =
@@ -388,6 +395,12 @@
       ,dma_noc_cid_width     : 3
       ,dma_noc_len_width     : 4
       ,dma_noc_max_credits   : 32
+
+      ,prefetch_streams         : 2
+      ,prefetch_train_cnt       : 2
+      ,prefetch_lookahead_depth : 4
+      ,prefetch_idle_threshold  : 3
+      ,prefetch_en              : 1
       };
 
   // BP_CUSTOM_DEFINES_PATH can be set to a file which has the custom defines below set
@@ -397,7 +410,7 @@
   `endif
   `include `BP_CUSTOM_DEFINES_PATH
   `ifndef BP_CUSTOM_BASE_CFG
-    `define BP_CUSTOM_BASE_CFG bp_default_cfg_p
+    `define BP_CUSTOM_BASE_CFG bp_unicore_miniparrot_cfg_p
   `endif
   // Custom, tick define-based configuration
   localparam bp_proc_param_s bp_custom_cfg_p =
@@ -498,6 +511,36 @@
       ,`bp_aviary_define_override(dma_noc_flit_width, BP_MEM_NOC_FLIT_WIDTH, `BP_CUSTOM_BASE_CFG)
       ,`bp_aviary_define_override(dma_noc_cid_width, BP_MEM_NOC_CID_WIDTH, `BP_CUSTOM_BASE_CFG)
       ,`bp_aviary_define_override(dma_noc_len_width, BP_MEM_NOC_LEN_WIDTH, `BP_CUSTOM_BASE_CFG)
+
+      `ifdef BP_PREFETCH_STREAMS
+      ,prefetch_streams         : `BP_PREFETCH_STREAMS
+      `else
+            ,prefetch_streams         : `BP_CUSTOM_BASE_CFG.prefetch_streams
+      `endif
+
+      `ifdef BP_PREFETCH_TRAIN_CNT
+            ,prefetch_train_cnt       : `BP_PREFETCH_TRAIN_CNT
+      `else
+            ,prefetch_train_cnt       : `BP_CUSTOM_BASE_CFG.prefetch_train_cnt
+      `endif
+
+      `ifdef BP_PREFETCH_LOOKAHEAD_DEPTH
+            ,prefetch_lookahead_depth : `BP_PREFETCH_LOOKAHEAD_DEPTH
+      `else
+            ,prefetch_lookahead_depth : `BP_CUSTOM_BASE_CFG.prefetch_lookahead_depth
+      `endif
+
+      `ifdef BP_PREFETCH_IDLE_THRESHOLD
+            ,prefetch_idle_threshold  : `BP_PREFETCH_IDLE_THRESHOLD
+      `else
+            ,prefetch_idle_threshold  : `BP_CUSTOM_BASE_CFG.prefetch_idle_threshold
+      `endif
+
+      `ifdef BP_PREFETCH_EN
+            ,prefetch_en              : `BP_PREFETCH_EN
+      `else
+            ,prefetch_en              : `BP_CUSTOM_BASE_CFG.prefetch_en
+      `endif
       };
 
 `endif
